@@ -101,6 +101,8 @@ public:
   virtual void EnumerateOutputDevices(AEDeviceList &devices, bool passthrough);
   virtual std::string GetDefaultDevice(bool passthrough);
   virtual bool SupportsRaw();
+  virtual bool SupportsCapability(const std::string& capabilityId) const;
+  virtual AEStdChLayout GetSuggestedChannelLayout() const;
 
   /* internal stream methods */
   void PauseStream (CSoftAEStream *stream);
@@ -120,6 +122,8 @@ private:
   void ResetEncoder();
   bool SetupEncoder(AEAudioFormat &format);
   void Deinitialize();
+
+  bool FindDevice(const std::string& deviceName, AEDeviceInfoList::const_iterator& passthroughDeviceInfo) const;
 
   inline void ProcessSuspend(); /* enter suspend state if nothing to play and sink allows */
 

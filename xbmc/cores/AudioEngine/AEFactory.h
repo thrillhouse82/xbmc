@@ -55,6 +55,7 @@ public:
   static void VerifyOutputDevice(std::string &device, bool passthrough);
   static std::string GetDefaultDevice(bool passthrough);
   static bool SupportsRaw();
+  static bool SupportsCapability(const std::string& str);
   static bool SupportsDrain();
 
   /**

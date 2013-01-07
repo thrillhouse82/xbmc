@@ -246,6 +246,13 @@ bool CAEFactory::SupportsRaw()
   return false;
 }
 
+bool CAEFactory::SupportsCapability( const std::string& str )
+{
+	if(AE)
+		return AE->SupportsCapability(str);
+
+	return false;
+}
 bool CAEFactory::SupportsDrain()
 {
   if(AE)

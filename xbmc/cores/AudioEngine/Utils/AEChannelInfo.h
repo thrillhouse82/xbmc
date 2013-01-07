@@ -69,6 +69,8 @@ enum AEStdChLayout
   AE_CH_LAYOUT_MAX
 };
 
+typedef unsigned long AEChannelBitmask;
+
 class CAEChannelInfo {
 public:
   CAEChannelInfo();
@@ -92,8 +94,14 @@ public:
   static const char* GetChName(const enum AEChannel ch);
   bool HasChannel(const enum AEChannel ch) const;
   bool ContainsChannels(CAEChannelInfo& rhs) const;
+  AEStdChLayout GetSuggestedChannelLayout() const;
 private:
   unsigned int   m_channelCount;
   enum AEChannel m_channels[AE_CH_MAX];
+
+  static const unsigned int STD_LAYOUTS_MAX_CHANNELS = 9;
+  static const enum AEChannel layouts[AE_CH_LAYOUT_MAX][STD_LAYOUTS_MAX_CHANNELS];
+
+  static AEChannelBitmask ChannelsToChannelBitmask(const enum AEChannel* channels, unsigned int channelCount);
 };
 

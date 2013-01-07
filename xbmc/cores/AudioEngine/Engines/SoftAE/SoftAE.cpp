@@ -556,22 +556,7 @@ void CSoftAE::LoadSettings()
     CLog::Log(LOGINFO, "CSoftAE::LoadSettings - Stereo upmix is enabled");
 
   /* load the configuration */
-  m_stdChLayout = AE_CH_LAYOUT_2_0;
-  switch (CSettings::Get().GetInt("audiooutput.channels"))
-  {
-    default:
-    case  0: m_stdChLayout = AE_CH_LAYOUT_2_0; break; /* dont alow 1_0 output */
-    case  1: m_stdChLayout = AE_CH_LAYOUT_2_0; break;
-    case  2: m_stdChLayout = AE_CH_LAYOUT_2_1; break;
-    case  3: m_stdChLayout = AE_CH_LAYOUT_3_0; break;
-    case  4: m_stdChLayout = AE_CH_LAYOUT_3_1; break;
-    case  5: m_stdChLayout = AE_CH_LAYOUT_4_0; break;
-    case  6: m_stdChLayout = AE_CH_LAYOUT_4_1; break;
-    case  7: m_stdChLayout = AE_CH_LAYOUT_5_0; break;
-    case  8: m_stdChLayout = AE_CH_LAYOUT_5_1; break;
-    case  9: m_stdChLayout = AE_CH_LAYOUT_7_0; break;
-    case 10: m_stdChLayout = AE_CH_LAYOUT_7_1; break;
-  }
+  m_stdChLayout = GetSuggestedChannelLayout();
 
   // force optical/coax to 2.0 output channels
   if (!m_rawPassthrough && CSettings::Get().GetInt("audiooutput.mode") == AUDIO_IEC958)
@@ -584,8 +569,8 @@ void CSoftAE::LoadSettings()
   VerifySoundDevice(m_passthroughDevice, true );
 
   m_transcode = (
-    CSettings::Get().GetBool("audiooutput.ac3passthrough") /*||
-    CSettings::Get().GetBool("audiooutput.dtspassthrough") */
+    SupportsCapability("audiooutput.ac3passthrough") /*||
+    SupportsCapability("audiooutput.dtspassthrough") */
   ) && (
       (CSettings::Get().GetInt("audiooutput.mode") == AUDIO_IEC958) ||
       (CSettings::Get().GetInt("audiooutput.mode") == AUDIO_HDMI && !CSettings::Get().GetBool("audiooutput.multichannellpcm"))
@@ -722,6 +707,106 @@ bool CSoftAE::SupportsRaw()
 {
   /* CSoftAE supports raw formats */
   return true;
+}
+
+bool CSoftAE::SupportsCapability(const std::string& capabilityId) const
+{
+#ifdef ENABLE_CAPABILITIES_AUTODETECT
+
+  bool result = false;
+
+  if (capabilityId == "audiooutput.ac3passthrough" ||
+      capabilityId == "audiooutput.dtspassthrough" ||
+      capabilityId == "audiooutput.truehdpassthrough" ||
+      capabilityId == "audiooutput.dtshdpassthrough" )
+  {
+    int audioMode = g_guiSettings.GetInt("audiooutput.mode");
+
+    if (AUDIO_IS_BITSTREAM(audioMode))
+    {
+      AEDeviceInfoList::const_iterator passthroughDeviceInfo;
+      result = false;
+      if(FindDevice(m_passthroughDevice, passthroughDeviceInfo))
+      {
+        for (AEDataFormatList::const_iterator dataFormat = passthroughDeviceInfo->m_dataFormats.begin(); dataFormat != passthroughDeviceInfo->m_dataFormats.end(); ++dataFormat)
+        {
+          CLog::Log(LOGDEBUG, "Device supports audio format #%d", static_cast<int>(*dataFormat));
+          if ( ((*dataFormat == AE_FMT_AC3) && (capabilityId == "audiooutput.ac3passthrough")) ||
+               ((*dataFormat == AE_FMT_DTS) && (capabilityId == "audiooutput.dtspassthrough")) ||
+               ((*dataFormat == AE_FMT_TRUEHD) && (capabilityId == "audiooutput.truehdpassthrough")) ||
+               ((*dataFormat == AE_FMT_DTSHD) && (capabilityId == "audiooutput.dtshdpassthrough")) )
+          {
+            result = true;
+            break;
+          }
+        }
+      }
+    }
+    else
+    {
+      result = false;
+    }
+  }
+  else
+  {
+    CLog::Log(LOGWARNING, "CSoftAE::SupportsCapability unknown ability %s queried", capabilityId.c_str());
+    result = false;
+  }
+
+  if(result)
+  {
+    CLog::Log(LOGDEBUG, "Capability %s supported", capabilityId.c_str());
+  }
+  else
+  {
+    CLog::Log(LOGDEBUG, "Capability %s not supported", capabilityId.c_str());
+  }
+
+  return result;
+
+#else
+
+  return g_guiSettings.GetBool(capabilityId.c_str()); 
+
+#endif
+}
+
+AEStdChLayout CSoftAE::GetSuggestedChannelLayout() const
+{
+#ifdef ENABLE_CAPABILITIES_AUTODETECT
+
+  AEDeviceInfoList::const_iterator device;
+  if(FindDevice(m_device, device))
+  {
+    return device->m_channels.GetSuggestedChannelLayout();
+  }
+  else
+  {
+    return AE_CH_LAYOUT_2_0;
+  }
+
+#else
+
+  AEStdChLayout chLayout = AE_CH_LAYOUT_2_0;
+  switch (g_guiSettings.GetInt("audiooutput.channels"))
+  {
+  default:
+  case  0: chLayout = AE_CH_LAYOUT_2_0; break; /* dont alow 1_0 output */
+  case  1: chLayout = AE_CH_LAYOUT_2_0; break;
+  case  2: chLayout = AE_CH_LAYOUT_2_1; break;
+  case  3: chLayout = AE_CH_LAYOUT_3_0; break;
+  case  4: chLayout = AE_CH_LAYOUT_3_1; break;
+  case  5: chLayout = AE_CH_LAYOUT_4_0; break;
+  case  6: chLayout = AE_CH_LAYOUT_4_1; break;
+  case  7: chLayout = AE_CH_LAYOUT_5_0; break;
+  case  8: chLayout = AE_CH_LAYOUT_5_1; break;
+  case  9: chLayout = AE_CH_LAYOUT_7_0; break;
+  case 10: chLayout = AE_CH_LAYOUT_7_1; break;
+  }
+
+  return chLayout;
+
+#endif
 }
 
 void CSoftAE::PauseStream(CSoftAEStream *stream)
@@ -1549,3 +1634,26 @@ inline void CSoftAE::ProcessSuspend()
   }
 }
 
+bool CSoftAE::FindDevice(const std::string& deviceName, AEDeviceInfoList::const_iterator& passthroughDeviceInfo) const
+{
+  CLog::Log(LOGDEBUG, "Trying to find device %s", deviceName.c_str());
+  // find currently selected passthrough device
+  bool found = false;
+  for (AESinkInfoList::const_iterator sinkInfo = m_sinkInfoList.begin(); sinkInfo != m_sinkInfoList.end() && !found; ++sinkInfo)
+  {
+    CLog::Log(LOGDEBUG, "Considering sink %s", sinkInfo->m_sinkName.c_str());
+    for (AEDeviceInfoList::const_iterator deviceInfo = sinkInfo->m_deviceInfoList.begin(); deviceInfo != sinkInfo->m_deviceInfoList.end() && !found; ++deviceInfo)
+    {
+      std::string fullName = sinkInfo->m_sinkName + ":" + deviceInfo->m_deviceName;
+      CLog::Log(LOGDEBUG, "Considering device %s", fullName.c_str());
+      if (fullName == deviceName)
+      {
+        passthroughDeviceInfo = deviceInfo;
+        found = true;
+        CLog::Log(LOGDEBUG, "Found device");
+      }
+    }
+  }
+
+  return found;
+}
