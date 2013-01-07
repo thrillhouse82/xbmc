@@ -183,5 +183,20 @@ public:
    * @returns true if the AudioEngine is capable of RAW output
    */
   virtual bool SupportsRaw() { return false; }
+
+  /**
+    * Returns true if the underlying audio hardware supports the given capability
+	* @param capabilidyId the capability to be queried
+	* @param result trueif supported, false else
+	* @returns true if the capability is known, false else
+	*/
+  virtual bool SupportsCapability(const std::string& capabilityId) const = 0;
+
+  /**
+    * Returns a suggested channel layout based on the supported
+    * channels of the device.
+    * @returns The suggested channel layout
+    */
+  virtual AEStdChLayout GetSuggestedChannelLayout() const = 0;
 };
 

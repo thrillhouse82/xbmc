@@ -52,14 +52,14 @@ bool CDVDAudioCodecPassthrough::Open(CDVDStreamInfo &hints, CDVDCodecOptions &op
   int audioMode = g_guiSettings.GetInt("audiooutput.mode");
   if (AUDIO_IS_BITSTREAM(audioMode))
   {
-    bSupportsAC3Out = g_guiSettings.GetBool("audiooutput.ac3passthrough");
-    bSupportsDTSOut = g_guiSettings.GetBool("audiooutput.dtspassthrough");
+	bSupportsAC3Out = CAEFactory::SupportsCapability("audiooutput.ac3passthrough");
+	bSupportsDTSOut = CAEFactory::SupportsCapability("audiooutput.dtspassthrough");
   }
 
   if (audioMode == AUDIO_HDMI)
   {
-    bSupportsTrueHDOut = g_guiSettings.GetBool("audiooutput.truehdpassthrough");
-    bSupportsDTSHDOut  = g_guiSettings.GetBool("audiooutput.dtshdpassthrough" ) && bSupportsDTSOut;
+	bSupportsTrueHDOut = CAEFactory::SupportsCapability("audiooutput.truehdpassthrough");
+	bSupportsDTSHDOut = CAEFactory::SupportsCapability("audiooutput.dtshdpassthrough") && bSupportsDTSOut;
   }
 
   /* only get the dts core from the parser if we don't support dtsHD */

@@ -239,6 +239,14 @@ bool CAEFactory::SupportsRaw()
   return false;
 }
 
+bool CAEFactory::SupportsCapability( const std::string& str )
+{
+	if(AE)
+		return AE->SupportsCapability(str);
+
+	return false;
+}
+
 void CAEFactory::SetMute(const bool enabled)
 {
   if(AE)

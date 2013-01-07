@@ -25,6 +25,8 @@
 #include "settings/Settings.h"
 #include "utils/log.h"
 
+#include "cores/AudioEngine/AEFactory.h"
+
 //These values are forced to allow spdif out
 #define OUT_SAMPLESIZE 16
 #define OUT_CHANNELS   2
@@ -292,9 +294,9 @@ bool CDVDAudioCodecPassthroughFFmpeg::Open(CDVDStreamInfo &hints, CDVDCodecOptio
   // TODO - move this stuff somewhere else
   if (AUDIO_IS_BITSTREAM(audioMode))
   {
-    m_bSupportsAC3Out = g_guiSettings.GetBool("audiooutput.ac3passthrough");
-    m_bSupportsDTSOut = g_guiSettings.GetBool("audiooutput.dtspassthrough");
-    m_bSupportsAACOut = g_guiSettings.GetBool("audiooutput.passthroughaac");
+	  m_bSupportsAC3Out = CAEFactory::SupportsCapability("audiooutput.ac3passthrough");
+	  m_bSupportsDTSOut = CAEFactory::SupportsCapability("audiooutput.dtspassthrough");
+	  m_bSupportsAACOut = CAEFactory::SupportsCapability("audiooutput.passthroughaac");
   }
   else
     return false;

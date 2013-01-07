@@ -19,7 +19,22 @@
  */
 
 #include "AEChannelInfo.h"
+#include "../utils/log.h"
 #include <string.h>
+
+const enum AEChannel CAEChannelInfo::layouts[AE_CH_LAYOUT_MAX][CAEChannelInfo::STD_LAYOUTS_MAX_CHANNELS] = {
+  {AE_CH_FC, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_LFE, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_LFE, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_BL , AE_CH_BR , AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_BL , AE_CH_BR , AE_CH_LFE, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_LFE, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_SL , AE_CH_SR, AE_CH_NULL},
+  {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_SL , AE_CH_SR, AE_CH_LFE, AE_CH_NULL}
+};
 
 CAEChannelInfo::CAEChannelInfo()
 {
@@ -151,20 +166,6 @@ CAEChannelInfo& CAEChannelInfo::operator=(const enum AEStdChLayout rhs)
 {
   ASSERT(rhs > AE_CH_LAYOUT_INVALID && rhs < AE_CH_LAYOUT_MAX);
 
-  static enum AEChannel layouts[AE_CH_LAYOUT_MAX][9] = {
-    {AE_CH_FC, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_LFE, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_LFE, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_BL , AE_CH_BR , AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_BL , AE_CH_BR , AE_CH_LFE, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_LFE, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_SL , AE_CH_SR, AE_CH_NULL},
-    {AE_CH_FL, AE_CH_FR, AE_CH_FC , AE_CH_BL , AE_CH_BR , AE_CH_SL , AE_CH_SR, AE_CH_LFE, AE_CH_NULL}
-  };
-
   *this = layouts[rhs];
   return *this;
 }
@@ -278,4 +279,41 @@ bool CAEChannelInfo::ContainsChannels(CAEChannelInfo& rhs) const
       return false;
   }
   return true;
+}
+
+AEStdChLayout CAEChannelInfo::GetSuggestedChannelLayout() const
+{
+  AEChannelBitmask myChannelBitmask = ChannelsToChannelBitmask(m_channels, m_channelCount);
+  CLog::Log(LOGDEBUG, "CAEChannelInfo::GetSuggestedChannelLayout: Looking for channel layout %x", static_cast<unsigned>(myChannelBitmask));
+  // first check if we have one of the predefined channel layouts
+  for(int i=0; i<AE_CH_MAX; ++i)
+  {
+    AEChannelBitmask thisChannelBitmask = ChannelsToChannelBitmask(layouts[i], STD_LAYOUTS_MAX_CHANNELS);
+    if(myChannelBitmask == thisChannelBitmask)
+    {
+      CLog::Log(LOGDEBUG, "CAEChannelInfo::GetSuggestedChannelLayout: Found standard channel layout no. %d", i);
+      return static_cast<AEStdChLayout>(i);
+    }
+  }
+
+  // not found, return 2.0. TODO figure out closest channel layout
+  return AE_CH_LAYOUT_2_0;
+}
+
+AEChannelBitmask CAEChannelInfo::ChannelsToChannelBitmask(const enum AEChannel* channels, unsigned int channelCount )
+{
+  AEChannelBitmask bitmask = 0;
+  for(unsigned int i=0; i<channelCount; ++i)
+  {
+    if(channels[i] != AE_CH_NULL)
+    {
+      bitmask |= static_cast<AEChannelBitmask>(1 << channels[i]);
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return bitmask;
 }
